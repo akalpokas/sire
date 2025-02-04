@@ -15,6 +15,8 @@ __all__ = [
     "PositionRestraints",
     "DihedralRestraint",
     "DihedralRestraints",
+    "MovingHarmonicRestraint",
+    "MovingHarmonicRestraints",
     "SelectorAngle",
     "SelectorBond",
     "SelectorDihedral",
@@ -49,6 +51,9 @@ PositionalRestraints = _MM.PositionalRestraints
 
 DihedralRestraint = _MM.DihedralRestraint
 DihedralRestraints = _MM.DihedralRestraints
+
+MovingHarmonicRestraint = _MM.MovingHarmonicRestraint
+MovingHarmonicRestraints = _MM.MovingHarmonicRestraints
 
 AmberBond = _MM.AmberBond
 AmberAngle = _MM.AmberAngle

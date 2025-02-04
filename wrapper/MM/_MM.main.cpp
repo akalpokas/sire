@@ -345,6 +345,10 @@
 
 #include "Mover_SelectorImproper_.pypp.hpp"
 
+#include "MovingHarmonicRestraint.pypp.hpp"
+
+#include "MovingHarmonicRestraints.pypp.hpp"
+
 #include "MultiCLJComponent.pypp.hpp"
 
 #include "NoCutoff.pypp.hpp"
@@ -550,10 +554,6 @@ BOOST_PYTHON_MODULE(_MM){
 
     register_AngleParameterName_class();
 
-    register_Restraint_class();
-
-    register_Restraint3D_class();
-
     register_AngleRestraint_class();
 
     register_Restraints_class();
@@ -692,6 +692,10 @@ BOOST_PYTHON_MODULE(_MM){
 
     register_DihedralSymbols_class();
 
+    register_Restraint_class();
+
+    register_Restraint3D_class();
+
     register_DistanceRestraint_class();
 
     register_DoubleDistanceRestraint_class();
@@ -787,6 +791,10 @@ BOOST_PYTHON_MODULE(_MM){
     register_LJProbe_class();
 
     register_MMDetail_class();
+
+    register_MovingHarmonicRestraint_class();
+
+    register_MovingHarmonicRestraints_class();
 
     register_MultiCLJComponent_class();
 

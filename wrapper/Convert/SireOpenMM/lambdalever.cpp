@@ -2006,7 +2006,7 @@ void LambdaLever::updateRestraintInContext(OpenMM::Force &ff, double rho,
     // what is the type of this force...?
     const auto ff_type = ff.getName();
 
-    if (ff_type == "BondRestraintForce" or ff_type == "PositionalRestraintForce")
+    if (ff_type == "BondRestraintForce" or ff_type == "PositionalRestraintForce" or ff_type == "MovingHarmonicRestraintForce")
     {
         _update_restraint_in_context(
             dynamic_cast<OpenMM::CustomBondForce *>(&ff),
