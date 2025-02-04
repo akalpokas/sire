@@ -19,7 +19,30 @@ organisation on `GitHub <https://github.com/openbiosim/sire>`__.
 
 * Fixed update of triclinic box vectors in ``SOMD`` following ``OpenMM`` bug fix.
 
+* Don't automatically save energies and frames when ``dynamics.run()`` returns.
+
+* Improved handling of NaN errors during dynamics.
+
+* Restore thread state before raising exceptions in the Sire OpenMM minimiser.
+
+* Add support for Replica Exchange with Solute Tempering (REST2) simulations.
+
+* Null SystemTrajectory pointer when all frames are deleted.
+
+* Handle cis/trans double bond stereochemistry values in SDF bond blocks.
+
+* Fix handling of positive formal charge when writing SDF files.
+
+* Fix lambda schedule discussion and plots in the tutorial.
+
 * Added support for angle and dihedral restraints which can be used in alchemical and standard simulations.
+
+* Allow user to compute energy trajectory over a subset of the lambda windows for each lambda.
+
+* Fix the ``hasForceSpecificEquation`` function in the ``LambdaLever`` class so that it returns true if
+  there is a default equation for the force.
+
+* Added support for the ``OpenMM`` ``MonteCarloMembraneBarostat`` to ``SOMD``.
 
 `2024.3.1 <https://github.com/openbiosim/sire/compare/2024.3.0...2024.3.1>`__ - December 2024
 --------------------------------------------------------------------------------------------

@@ -1126,6 +1126,7 @@ PropertyList LambdaLever::getLeverValues(const QVector<double> &lambda_values,
  */
 double LambdaLever::setLambda(OpenMM::Context &context,
                               double lambda_value,
+                              double rest2_scale,
                               bool update_constraints) const
 {
     // go over each forcefield and update the parameters in the forcefield,
@@ -1134,6 +1135,13 @@ double LambdaLever::setLambda(OpenMM::Context &context,
         return 0.0;
 
     lambda_value = this->lambda_schedule.clamp(lambda_value);
+
+    // This is the temperature scale factor, so we need to invert to get the energy
+    // scale factor.
+    rest2_scale = 1.0 / rest2_scale;
+
+    // Store the REST charge scaling factor for non-bonded interactions.
+    const auto sqrt_rest2_scale = std::sqrt(rest2_scale);
 
     // we need an editable reference to the system to get editable
     // pointers to the forces...
@@ -1187,6 +1195,10 @@ double LambdaLever::setLambda(OpenMM::Context &context,
 
         // now update the forcefields
         int start_index = start_idxs.value("clj", -1);
+
+        // record the index of the first atom in the perturbable molecule within
+        // the original Sire system
+        const auto start_atom_idx = perturbable_mol.getStartAtomIdx();
 
         if (start_index != -1 and cljff != 0)
         {
@@ -1353,12 +1365,22 @@ double LambdaLever::setLambda(OpenMM::Context &context,
                     const bool is_from_ghost = perturbable_mol.getFromGhostIdxs().contains(j);
                     const bool is_to_ghost = perturbable_mol.getToGhostIdxs().contains(j);
 
+                    double scale = 1.0;
+                    double sqrt_scale = 1.0;
+
+                    // apply the REST2 scaling.
+                    if (perturbable_mol.isRest2(j))
+                    {
+                        scale = rest2_scale;
+                        sqrt_scale = sqrt_rest2_scale;
+                    }
+
                     // reduced charge
-                    custom_params[0] = morphed_ghost_charges[j];
+                    custom_params[0] = sqrt_scale * morphed_ghost_charges[j];
                     // half_sigma
                     custom_params[1] = 0.5 * morphed_ghost_sigmas[j];
                     // two_sqrt_epsilon
-                    custom_params[2] = 2.0 * std::sqrt(morphed_ghost_epsilons[j]);
+                    custom_params[2] = 2.0 * sqrt_scale * std::sqrt(morphed_ghost_epsilons[j]);
                     // alpha
                     custom_params[3] = morphed_ghost_alphas[j];
                     // kappa
@@ -1379,11 +1401,11 @@ double LambdaLever::setLambda(OpenMM::Context &context,
                     ghost_ghostff->setParticleParameters(start_index + j, custom_params);
 
                     // reduced charge
-                    custom_params[0] = morphed_nonghost_charges[j];
+                    custom_params[0] = sqrt_scale * morphed_nonghost_charges[j];
                     // half_sigma
                     custom_params[1] = 0.5 * morphed_nonghost_sigmas[j];
                     // two_sqrt_epsilon
-                    custom_params[2] = 2.0 * std::sqrt(morphed_nonghost_epsilons[j]);
+                    custom_params[2] = 2.0 * sqrt_scale * std::sqrt(morphed_nonghost_epsilons[j]);
                     // alpha
                     custom_params[3] = morphed_nonghost_alphas[j];
                     // kappa
@@ -1406,11 +1428,13 @@ double LambdaLever::setLambda(OpenMM::Context &context,
                     if (is_from_ghost or is_to_ghost)
                     {
                         // don't set the LJ parameters in the cljff
-                        cljff->setParticleParameters(start_index + j, morphed_charges[j], 0.0, 0.0);
+                        cljff->setParticleParameters(start_index + j, sqrt_scale * morphed_charges[j], 0.0, 0.0);
                     }
                     else
                     {
-                        cljff->setParticleParameters(start_index + j, morphed_charges[j], morphed_sigmas[j], morphed_epsilons[j]);
+                        cljff->setParticleParameters(
+                            start_index + j, sqrt_scale* morphed_charges[j],
+                            morphed_sigmas[j], scale * morphed_epsilons[j]);
                     }
                 }
             }
@@ -1418,7 +1442,18 @@ double LambdaLever::setLambda(OpenMM::Context &context,
             {
                 for (int j = 0; j < nparams; ++j)
                 {
-                    cljff->setParticleParameters(start_index + j, morphed_charges[j], morphed_sigmas[j], morphed_epsilons[j]);
+                    double scale = 1.0;
+                    double sqrt_scale = 1.0;
+
+                    // apply the REST2 scaling.
+                    if (perturbable_mol.isRest2(j))
+                    {
+                        scale = rest2_scale;
+                        sqrt_scale = sqrt_rest2_scale;
+                    }
+
+                    cljff->setParticleParameters(start_index + j, sqrt_scale * morphed_charges[j],
+                            morphed_sigmas[j], scale * morphed_epsilons[j]);
                 }
             }
 
@@ -1446,6 +1481,14 @@ double LambdaLever::setLambda(OpenMM::Context &context,
                                            morphed_charges, morphed_sigmas, morphed_epsilons,
                                            morphed_alphas, morphed_kappas);
 
+                    double scale = 1.0;
+
+                    // apply the REST2 scaling.
+                    if (perturbable_mol.isRest2(atom0) and perturbable_mol.isRest2(atom1))
+                    {
+                        scale = rest2_scale;
+                    }
+
                     // don't set LJ terms for ghost atoms
                     if (atom0_is_ghost or atom1_is_ghost)
                     {
@@ -1462,7 +1505,7 @@ double LambdaLever::setLambda(OpenMM::Context &context,
                         cljff->setExceptionParameters(
                             boost::get<0>(idxs[j]),
                             boost::get<0>(p), boost::get<1>(p),
-                            boost::get<2>(p), 1e-9, 1e-9);
+                            boost::get<2>(p) * scale, 1e-9, 1e-9);
 
                         // exclude 14s for to/from ghost interactions
                         if (not to_from_ghost and ghost_14ff != 0)
@@ -1488,10 +1531,13 @@ double LambdaLever::setLambda(OpenMM::Context &context,
                                                          morphed_ghost14_kappas);
 
                             // parameters are q, sigma, four_epsilon and alpha
-                            std::vector<double> params14 =
-                                {boost::get<2>(p), boost::get<3>(p),
-                                 4.0 * boost::get<4>(p), boost::get<5>(p),
-                                 boost::get<6>(p)};
+                            std::vector<double> params14 = {
+                                boost::get<2>(p) * scale,
+                                boost::get<3>(p),
+                                4.0 * boost::get<4>(p) * scale,
+                                boost::get<5>(p),
+                                boost::get<6>(p)
+                            };
 
                             if (start_change_14 == -1)
                             {
@@ -1518,8 +1564,8 @@ double LambdaLever::setLambda(OpenMM::Context &context,
                         cljff->setExceptionParameters(
                             boost::get<0>(idxs[j]),
                             boost::get<0>(p), boost::get<1>(p),
-                            boost::get<2>(p), boost::get<3>(p),
-                            boost::get<4>(p));
+                            boost::get<2>(p) * scale, boost::get<3>(p),
+                            boost::get<4>(p) * scale);
                     }
                 }
             }
@@ -1679,6 +1725,8 @@ double LambdaLever::setLambda(OpenMM::Context &context,
 
             const int nparams = morphed_torsion_k.count();
 
+            const auto is_improper = perturbable_mol.getIsImproper();
+
             if (start_change_torsion == -1)
             {
                 start_change_torsion = start_index;
@@ -1707,12 +1755,30 @@ double LambdaLever::setLambda(OpenMM::Context &context,
                                             particle3, particle4,
                                             periodicity, phase, k);
 
+                // get the indices of the particles in the Sire molecule
+                const auto atom1 = particle1 - start_atom_idx;
+                const auto atom2 = particle2 - start_atom_idx;
+                const auto atom3 = particle3 - start_atom_idx;
+                const auto atom4 = particle4 - start_atom_idx;
+
+                // Only apply the REST2 scaling factor if this is a proper dihedral
+                // and all atoms are in the REST2 region.
+                double scale = 1.0;
+                if (not is_improper[j] and
+                    perturbable_mol.isRest2(atom1) and
+                    perturbable_mol.isRest2(atom2) and
+                    perturbable_mol.isRest2(atom3) and
+                    perturbable_mol.isRest2(atom4))
+                {
+                    scale = rest2_scale;
+                }
+
                 dihff->setTorsionParameters(index,
                                             particle1, particle2,
                                             particle3, particle4,
                                             periodicity,
                                             morphed_torsion_phase[j],
-                                            morphed_torsion_k[j]);
+                                            morphed_torsion_k[j] * scale);
             }
         }
     }
