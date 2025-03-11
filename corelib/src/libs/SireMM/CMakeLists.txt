@@ -78,6 +78,7 @@ set ( SIREMM_HEADERS
       ljpotential.h
       mmdetail.h
       movingharmonicrestraints.h
+      morsepotentialrestraints.h
       multicljcomponent.h
       positionalrestraints.h
       restraint.h
@@ -169,6 +170,7 @@ set ( SIREMM_SOURCES
       ljperturbation.cpp
       ljpotential.cpp
       movingharmonicrestraints.cpp
+      morsepotentialrestraints.cpp
       mmdetail.cpp
       multicljcomponent.cpp
       positionalrestraints.cpp

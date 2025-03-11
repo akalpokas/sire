@@ -56,6 +56,7 @@
 #include "intraljff.h"
 #include "fouratomfunctions.h"
 #include "restraintcomponent.h"
+#include "morsepotentialrestraints.h"
 #include "selectorangle.h"
 #include "distancerestraint.h"
 #include "selectordihedral.h"
@@ -198,6 +199,8 @@ void register_SireMM_objects()
     ObjectRegistry::registerConverterFor< SireMM::IntraGroupLJFF >();
     ObjectRegistry::registerConverterFor< SireMM::FourAtomFunctions >();
     ObjectRegistry::registerConverterFor< SireMM::RestraintComponent >();
+    ObjectRegistry::registerConverterFor< SireMM::MorsePotentialRestraint >();
+    ObjectRegistry::registerConverterFor< SireMM::MorsePotentialRestraints >();
     ObjectRegistry::registerConverterFor< SireMM::SelectorAngle >();
     ObjectRegistry::registerConverterFor< SireMol::Mover<SireMM::SelectorAngle> >();
     ObjectRegistry::registerConverterFor< SireMM::DistanceRestraint >();

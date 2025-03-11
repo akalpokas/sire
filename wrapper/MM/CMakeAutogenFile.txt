@@ -168,6 +168,7 @@ set ( PYPP_SOURCES
        GromacsAngle.pypp.cpp
        CLJCutoffFunction.pypp.cpp
        LJ1264Parameter.pypp.cpp
+       MorsePotentialRestraint.pypp.cpp
        CoulombPotentialInterface_InterCoulombPotential_.pypp.cpp
        ThreeAtomPerturbation.pypp.cpp
        Mover_Bond_.pypp.cpp
@@ -202,6 +203,7 @@ set ( PYPP_SOURCES
        Intra14Component.pypp.cpp
        SelectorMImproper.pypp.cpp
        GromacsDihedral.pypp.cpp
+       MorsePotentialRestraints.pypp.cpp
        AmberBond.pypp.cpp
        NullRestraint.pypp.cpp
        LJComponent.pypp.cpp
