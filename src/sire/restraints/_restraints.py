@@ -785,7 +785,7 @@ def moving_harmonic(
 
 
 def morse_potential(
-    mols, atoms0, atoms1, r0=None, k=None, de=None, name=None, map=None
+    mols, atoms0=None, atoms1=None, r0=None, k=None, de=None, name=None, auto_find_atoms=False, map=None
 ):
     """
     Need to write
@@ -797,6 +797,7 @@ def morse_potential(
     from .. import u
     from ..base import create_map
     from ..mm import MorsePotentialRestraint, MorsePotentialRestraints
+    from ..morph import link_to_reference
 
     map = create_map(map)
 
@@ -808,6 +809,30 @@ def morse_potential(
         k = [u(x) for x in k]
     else:
         k = [u(k)]
+    if auto_find_atoms:
+        mol = mols.molecules("molecule property is_perturbable")
+        ref_mol = link_to_reference(mol)
+
+        if len(ref_mol) != 1:
+            raise ValueError(
+                "We need exactly one molecule that is perturbable to set up the Morse potential restraints"
+            )
+        perturbable_mol = ref_mol[0]
+        pert = perturbable_mol.perturbation(map=map)
+        pert_omm = pert.to_openmm()
+        changed_bonds = pert_omm.changed_bonds(to_pandas=False)
+
+        # we'll attempt to find the bond that is annihilated at lambda=1
+        for bond in changed_bonds:
+            bond_name, length0, length1, k0, k1 = bond
+            if k1 == 0:
+                atoms0 = [bond_name.atom0().index().value()]
+                atoms1 = [bond_name.atom1().index().value()]
+        
+        if len(atoms0) == 0 or len(atoms1) == 0:
+            raise ValueError(
+                "Could not find any bonds that are annihilated at lambda=1.")
+
 
     atoms0 = _to_atoms(mols, atoms0)
     atoms1 = _to_atoms(mols, atoms1)
