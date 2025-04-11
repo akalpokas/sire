@@ -916,6 +916,27 @@ class DynamicsData:
         from ..convert import to
 
         self._omm_mols = to(self._sire_mols, "openmm", map=self._map)
+        from .. import save
+        from pathlib import Path
+        # check if failed_dynamics_i exists, if does, save i+1
+        i = 1
+        while Path(f"failed_dynamics_{i}.pdb").exists():
+            i += 1
+        save(self._sire_mols, f"failed_dynamics_{i}", format=["pdb"])
+
+        from copy import deepcopy
+
+        context_system = deepcopy(self._omm_mols.getSystem())
+
+
+        with open(f"failed_dynamics_{i}.log", "w") as f:
+            f.write(f"Current Dynamics Lambda: {str(self.get_lambda())}\n")
+            f.write(f"Current Total Energy: {self.current_energy().to_string()}\n")
+            f.write(f"Current Potential Energy: {self.current_potential_energy().to_string()}\n")
+            f.write(f"Current Kinetic Energy: {self.current_kinetic_energy().to_string()}\n")
+            for i, force in enumerate(context_system.getForces()):
+                state = self._omm_mols.getState(getEnergy=True, getPositions=True, getParameters=True, getForces=True, groups={i})
+                f.write(f"{force.getName()}, {state.getPotentialEnergy()}\n")
 
         self.run_minimisation()
 

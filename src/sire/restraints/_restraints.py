@@ -785,7 +785,7 @@ def moving_harmonic(
 
 
 def morse_potential(
-    mols, atoms0=None, atoms1=None, r0=None, k=None, de=None, name=None, auto_find_atoms=False, map=None
+    mols, atoms0=None, atoms1=None, r0=None, k=None, de=None, name=None, auto_parametrise=False, map=None
 ):
     """
     Need to write
@@ -809,7 +809,7 @@ def morse_potential(
         k = [u(x) for x in k]
     else:
         k = [u(k)]
-    if auto_find_atoms:
+    if auto_parametrise:
         mol = mols.molecules("molecule property is_perturbable")
         ref_mol = link_to_reference(mol)
 
@@ -828,6 +828,8 @@ def morse_potential(
             if k1 == 0:
                 atoms0 = [bond_name.atom0().index().value()]
                 atoms1 = [bond_name.atom1().index().value()]
+                length0 = u(f"{length0} nm")
+                break
         
         if len(atoms0) == 0 or len(atoms1) == 0:
             raise ValueError(
@@ -847,25 +849,21 @@ def morse_potential(
         atoms1 += atoms1[-1]
 
     if r0 is None:
-        # calculate all of the current distances
-        from .. import measure
+        if auto_parametrise:
+            r0 = [length0]
+        else:
+            # calculate all of the current distances
+            from .. import measure
 
-        r0 = []
-        for atom0, atom1 in zip(atoms0, atoms1):
-            r0.append(measure(atom0, atom1))
+            r0 = []
+            for atom0, atom1 in zip(atoms0, atoms1):
+                r0.append(measure(atom0, atom1))
     elif type(r0) is list:
         r0 = [u(x) for x in r0]
     else:
         r0 = [u(r0)]
 
     if de is None:
-        # calculate all of the current distances
-        #     from .. import measure
-
-        #     for atom0, atom1 in zip(atoms0, atoms1):
-        #         r1 = measure(atom0, atom1)
-        # else:
-        #     r1 = u(r1)
         raise ValueError("de must be provided")
 
     mols = mols.atoms()
