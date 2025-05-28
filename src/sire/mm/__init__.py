@@ -19,6 +19,8 @@ __all__ = [
     "MovingHarmonicRestraints",
     "MorsePotentialRestraint",
     "MorsePotentialRestraints",
+    "SoftAngleRestraint",
+    "SoftAngleRestraints",
     "SelectorAngle",
     "SelectorBond",
     "SelectorDihedral",
@@ -59,6 +61,9 @@ MovingHarmonicRestraints = _MM.MovingHarmonicRestraints
 
 MorsePotentialRestraint = _MM.MorsePotentialRestraint
 MorsePotentialRestraints = _MM.MorsePotentialRestraints
+
+SoftAngleRestraint = _MM.SoftAngleRestraint
+SoftAngleRestraints = _MM.SoftAngleRestraints
 
 AmberBond = _MM.AmberBond
 AmberAngle = _MM.AmberAngle

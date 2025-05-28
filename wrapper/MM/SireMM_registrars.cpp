@@ -24,6 +24,7 @@
 #include "movingharmonicrestraints.h"
 #include "cljboxes.h"
 #include "cljgroup.h"
+#include "softanglerestraints.h"
 #include "excludedpairs.h"
 #include "cljcomponent.h"
 #include "atomljs.h"
@@ -135,6 +136,8 @@ void register_SireMM_objects()
     ObjectRegistry::registerConverterFor< SireMM::CLJBoxes >();
     ObjectRegistry::registerConverterFor< SireMM::CLJBoxDistance >();
     ObjectRegistry::registerConverterFor< SireMM::CLJGroup >();
+    ObjectRegistry::registerConverterFor< SireMM::SoftAngleRestraint >();
+    ObjectRegistry::registerConverterFor< SireMM::SoftAngleRestraints >();
     ObjectRegistry::registerConverterFor< SireMM::ExcludedPairs >();
     ObjectRegistry::registerConverterFor< SireMM::CoulombComponent >();
     ObjectRegistry::registerConverterFor< SireMM::LJComponent >();

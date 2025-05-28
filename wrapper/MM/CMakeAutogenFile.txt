@@ -49,6 +49,7 @@ set ( PYPP_SOURCES
        GromacsBond.pypp.cpp
        MovingHarmonicRestraint.pypp.cpp
        ThreeAtomFunction.pypp.cpp
+       SoftAngleRestraints.pypp.cpp
        AngleSymbols.pypp.cpp
        LJException.pypp.cpp
        InterSoftCLJFFBase.pypp.cpp
@@ -182,6 +183,7 @@ set ( PYPP_SOURCES
        CLJBoxes.pypp.cpp
        IntraGroupCLJFF.pypp.cpp
        CoulombNBPairs.pypp.cpp
+       SoftAngleRestraint.pypp.cpp
        InterGroupCoulombFFBase.pypp.cpp
        Restraint3D.pypp.cpp
        CLJDelta.pypp.cpp

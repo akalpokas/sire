@@ -29,6 +29,7 @@
 #include "SireMM/movingharmonicrestraints.h"
 #include "SireMM/morsepotentialrestraints.h"
 #include "SireMM/positionalrestraints.h"
+#include "SireMM/softanglerestraints.h"
 #include "SireMM/selectorbond.h"
 
 #include "SireVol/periodicbox.h"
@@ -632,6 +633,67 @@ void _add_angle_restraints(const SireMM::AngleRestraints &restraints,
         parameters[2] = restraint.theta0().value();                      // theta0 (already in radians)
 
         // restraintff->addTorsion(particles, parameters);
+        restraintff->addAngle(particles[0], particles[1], particles[2], parameters);
+    }
+}
+
+/** Add all of the angle restraints from 'restraints' to the passed
+ *  system, which is acted on by the passed LambdaLever. The number
+ *  of real (non-anchor) atoms in the OpenMM::System is 'natoms'
+ */
+
+void _add_soft_angle_restraints(const SireMM::SoftAngleRestraints &restraints,
+                           OpenMM::System &system, LambdaLever &lambda_lever,
+                           int natoms)
+{
+    if (restraints.isEmpty())
+        return;
+
+    const auto energy_expression = QString(
+                                    "rho*e_restraint;"
+                                    "e_restraint=pe*(1-exp(-sqrt(k/(2*pe))*delta))^2;"
+                                    "delta=abs(theta-theta0)")
+                                    .toStdString();
+
+    // const auto energy_expression = QString(
+    //                                    "rho*k*(theta-theta0)^2;")
+    //                                    .toStdString();
+
+    auto *restraintff = new OpenMM::CustomAngleForce(energy_expression);
+
+    restraintff->setName("SoftAngleRestraintForce");
+    restraintff->addPerAngleParameter("rho");
+    restraintff->addPerAngleParameter("k");
+    restraintff->addPerAngleParameter("theta0");
+    restraintff->addPerAngleParameter("pe"); // plateau energy
+
+    restraintff->setUsesPeriodicBoundaryConditions(true);
+
+    lambda_lever.addRestraintIndex(restraints.name(),
+                                   system.addForce(restraintff));
+
+    const double internal_to_ktheta = (1 * SireUnits::kcal_per_mol / (SireUnits::radian2)).to(SireUnits::kJ_per_mol / SireUnits::radian2);
+
+    const auto atom_restraints = restraints.restraints();
+    const double internal_to_pe = (1 * SireUnits::kcal_per_mol).to(SireUnits::kJ_per_mol);
+    
+    for (const auto &restraint : atom_restraints)
+    {
+        std::vector<int> particles;
+        particles.resize(3);
+
+        for (int i = 0; i < 3; ++i)
+        {
+            particles[i] = restraint.atoms()[i];
+        }
+
+        std::vector<double> parameters;
+        parameters.resize(4);
+
+        parameters[0] = 1.0;                                             // rho
+        parameters[1] = restraint.ktheta().value() * internal_to_ktheta; // k
+        parameters[2] = restraint.theta0().value();                      // theta0 (already in radians)
+        parameters[3] = restraint.pe().value() * internal_to_pe;         // plateau energy
         restraintff->addAngle(particles[0], particles[1], particles[2], parameters);
     }
 }
@@ -1999,6 +2061,11 @@ OpenMMMetaData SireOpenMM::sire_to_openmm_system(OpenMM::System &system,
             else if (prop.read().isA<SireMM::AngleRestraints>())
             {
                 _add_angle_restraints(prop.read().asA<SireMM::AngleRestraints>(),
+                                      system, lambda_lever, start_index);
+            }
+            else if (prop.read().isA<SireMM::SoftAngleRestraints>())
+            {
+                _add_soft_angle_restraints(prop.read().asA<SireMM::SoftAngleRestraints>(),
                                       system, lambda_lever, start_index);
             }
             else if (prop.read().isA<SireMM::PositionalRestraints>())

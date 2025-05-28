@@ -397,6 +397,10 @@
 
 #include "SelectorMImproper.pypp.hpp"
 
+#include "SoftAngleRestraint.pypp.hpp"
+
+#include "SoftAngleRestraints.pypp.hpp"
+
 #include "SoftCLJComponent.pypp.hpp"
 
 #include "SoftCLJPotentialInterface_InterSoftCLJPotential_.pypp.hpp"
@@ -841,6 +845,10 @@ BOOST_PYTHON_MODULE(_MM){
     register_SelectorMDihedral_class();
 
     register_SelectorMImproper_class();
+
+    register_SoftAngleRestraint_class();
+
+    register_SoftAngleRestraints_class();
 
     register_SoftCLJComponent_class();
 

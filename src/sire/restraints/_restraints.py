@@ -22,7 +22,7 @@ def _to_atoms(mols, atoms):
     return selection_to_atoms(mols, atoms)
 
 
-def angle(mols, atoms, theta0=None, ktheta=None, name=None, map=None):
+def angle(mols, atoms, theta0=None, ktheta=None, name=None, map=None, auto_parametrise=False):
     """
     Create a set of anglel restraints from all of the atoms in 'atoms'
     where all atoms are contained in the container 'mols', using the
@@ -62,6 +62,7 @@ def angle(mols, atoms, theta0=None, ktheta=None, name=None, map=None):
     from .. import u
     from ..base import create_map
     from ..mm import AngleRestraint, AngleRestraints
+    from ..morph import link_to_reference
 
     map = create_map(map)
     map_dict = map.to_dict()
@@ -87,11 +88,47 @@ def angle(mols, atoms, theta0=None, ktheta=None, name=None, map=None):
             "Setup of multiple angle restraints simultaneously is not currently supported. "
             "Please set up each restraint individually and then combine them into multiple restraints."
         )
+    # if auto_parametrise:
+    #     mol = mols.molecules("molecule property is_perturbable")
+    #     ref_mol = link_to_reference(mol)
+
+    #     if len(ref_mol) != 1:
+    #         raise ValueError(
+    #             "We need exactly one molecule that is perturbable to set up the angle restraints"
+    #         )
+    #     perturbable_mol = ref_mol[0]
+    #     pert = perturbable_mol.perturbation(map=map)
+    #     pert_omm = pert.to_openmm()
+    #     changed_angles = pert_omm.changed_angles(to_pandas=False)
+
+    #     # we'll attempt to find the angle that is annihilated at lambda=1
+    #     for angle in changed_angles:
+    #         angle_name, size0, size1, ktheta0, ktheta1 = angle
+    #         if ktheta1 == 0:
+    #             atoms0 = [angle_name.atom0().index().value()]
+    #             atoms1 = [angle_name.atom1().index().value()]
+    #             atoms2 = [angle_name.atom1().index().value()]
+    #             size0 = u(f"{size0} rad")
+    #             break
+
+    #     if len(atoms0) == 0 or len(atoms1) == 0 or len(atoms2) == 0:
+    #         raise ValueError(
+    #             "Could not find any angles that are annihilated at lambda=1.")
+        
+    #     atoms0 = _to_atoms(mols, atoms0)
+    #     atoms1 = _to_atoms(mols, atoms1)
+    #     atoms2 = _to_atoms(mols, atoms2)
 
     if theta0 is None:
-        from .. import measure
+        if auto_parametrise:
+            raise NotImplementedError(
+                "Automatic parametrisation of angle restraints is not yet implemented. "
+                "Please provide the equilibrium angle value (theta0) manually."
+            )
+        else:
+            from .. import measure
 
-        theta0 = measure(atoms[0], atoms[1], atoms[2])
+            theta0 = measure(atoms[0], atoms[1], atoms[2])
 
     elif type(theta0) is list:
         raise NotImplementedError(
@@ -1010,4 +1047,134 @@ def positional(mols, atoms, k=None, r0=None, position=None, name=None, map=None)
         else:
             restraints.add(PositionalRestraint(idxs[0], position[i], ik, ir0))
 
+    return restraints
+
+def soft_angle(mols, atoms, theta0=None, ktheta=None, pe=None, name=None, map=None, auto_parametrise=False):
+    """
+    Create a set of anglel restraints from all of the atoms in 'atoms'
+    where all atoms are contained in the container 'mols', using the
+    passed values of the force constant 'ktheta' and equilibrium
+    angle value theta0.
+
+    If theta0 is None, then the current angle for
+    provided atoms will be used as the equilibium value.
+
+    If ktheta is None, then a default value of 100 kcal mol-1 rad-2 will be used
+
+    Parameters
+    ----------
+    mols : sire.system._system.System
+        The system containing the atoms.
+
+    atoms : SireMol::Selector<SireMol::Atom>
+        The atoms to restrain.
+
+    ktheta : str or SireUnits::Dimension::GeneralUnit or, optional
+        The force constants for the angle restraints.
+        If None, this will default to 100 kcal mol-1 rad-2.
+        Default is None.
+
+    theta0 : str or SireUnits::Dimension::GeneralUnit, optional
+        The equilibrium angles for the angle restraints. If None, these
+        will be measured from the current coordinates of the atoms.
+        Default is None.
+
+    Returns
+    -------
+    AnglelRestraints : SireMM::AngleRestraints
+        A container of angle restraints, where the first restraint is
+        the AngleRestraint created. The angle restraint created can be
+        extracted with AngleRestraints[0].
+    """
+    from .. import u
+    from ..base import create_map
+    from ..mm import SoftAngleRestraint, SoftAngleRestraints
+    from ..morph import link_to_reference
+
+    map = create_map(map)
+    map_dict = map.to_dict()
+    ktheta = ktheta if ktheta is not None else map_dict.get("ktheta", None)
+    theta0 = theta0 if theta0 is not None else map_dict.get("theta0", None)
+    pe = pe if pe is not None else map_dict.get("pe", None)
+    name = name if name is not None else map_dict.get("name", None)
+
+    atoms = _to_atoms(mols, atoms)
+
+    if len(atoms) != 3:
+        raise ValueError(
+            "You need to provide 3 atoms to create an angle restraint"
+            f"whereas {len(atoms)} atoms were provided."
+        )
+
+    from .. import measure
+
+    if ktheta is None:
+        ktheta = u("100 kcal mol-1 rad-2")
+
+    if pe is None:
+        pe = u("100 kcal mol-1")
+
+    elif type(ktheta) is list:
+        raise NotImplementedError(
+            "Setup of multiple angle restraints simultaneously is not currently supported. "
+            "Please set up each restraint individually and then combine them into multiple restraints."
+        )
+    # if auto_parametrise:
+    #     mol = mols.molecules("molecule property is_perturbable")
+    #     ref_mol = link_to_reference(mol)
+
+    #     if len(ref_mol) != 1:
+    #         raise ValueError(
+    #             "We need exactly one molecule that is perturbable to set up the angle restraints"
+    #         )
+    #     perturbable_mol = ref_mol[0]
+    #     pert = perturbable_mol.perturbation(map=map)
+    #     pert_omm = pert.to_openmm()
+    #     changed_angles = pert_omm.changed_angles(to_pandas=False)
+
+    #     # we'll attempt to find the angle that is annihilated at lambda=1
+    #     for angle in changed_angles:
+    #         angle_name, size0, size1, ktheta0, ktheta1 = angle
+    #         if ktheta1 == 0:
+    #             atoms0 = [angle_name.atom0().index().value()]
+    #             atoms1 = [angle_name.atom1().index().value()]
+    #             atoms2 = [angle_name.atom1().index().value()]
+    #             size0 = u(f"{size0} rad")
+    #             break
+
+    #     if len(atoms0) == 0 or len(atoms1) == 0 or len(atoms2) == 0:
+    #         raise ValueError(
+    #             "Could not find any angles that are annihilated at lambda=1.")
+        
+    #     atoms0 = _to_atoms(mols, atoms0)
+    #     atoms1 = _to_atoms(mols, atoms1)
+    #     atoms2 = _to_atoms(mols, atoms2)
+
+    if theta0 is None:
+        if auto_parametrise:
+            raise NotImplementedError(
+                "Automatic parametrisation of angle restraints is not yet implemented. "
+                "Please provide the equilibrium angle value (theta0) manually."
+            )
+        else:
+            from .. import measure
+
+            theta0 = measure(atoms[0], atoms[1], atoms[2])
+
+    elif type(theta0) is list:
+        raise NotImplementedError(
+            "Setup of multiple angle restraints simultaneously is not currently supported. "
+            "Please set up each restraint individually and then combine them into multiple restraints."
+        )
+    else:
+        theta0 = u(theta0)
+
+    mols = mols.atoms()
+
+    if name is None:
+        restraints = SoftAngleRestraints()
+    else:
+        restraints = SoftAngleRestraints(name=name)
+
+    restraints.add(SoftAngleRestraint(mols.find(atoms), theta0, ktheta, pe))
     return restraints

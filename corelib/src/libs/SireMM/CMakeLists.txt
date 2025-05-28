@@ -93,6 +93,7 @@ set ( SIREMM_HEADERS
       selectormbond.h
       selectormdihedral.h
       selectormimproper.h
+      softanglerestraints.h
       softcljcomponent.h
       softcljpotential.h
       switchingfunction.h
@@ -186,6 +187,7 @@ set ( SIREMM_SOURCES
       selectormbond.cpp
       selectormdihedral.cpp
       selectormimproper.cpp
+      softanglerestraints.cpp
       softcljcomponent.cpp
       softcljpotential.cpp
       switchingfunction.cpp
