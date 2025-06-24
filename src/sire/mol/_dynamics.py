@@ -1362,6 +1362,7 @@ class DynamicsData:
             self._is_running = False
             self._clear_state()
             self._rebuild_and_minimise()
+            self._current_step = 0
             orig_args["auto_fix_minimise"] = False
             self.run(**orig_args)
             return
