@@ -1377,7 +1377,7 @@ class DynamicsData:
             self._current_time = self._prev_current_time
             self._elapsed_time = self._prev_elapsed_time
             self._omm_mols.setTime(
-                self._prev_current_time.to("picosecond") * picosecond
+                self._prev_elapsed_time.to("picosecond") * picosecond
             )
 
             orig_args["auto_fix_minimise"] = False
