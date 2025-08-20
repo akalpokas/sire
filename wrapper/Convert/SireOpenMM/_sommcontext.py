@@ -543,12 +543,12 @@ class SOMMContext(_Context):
             )
 
         # Update the angle parameters.
-        for index, params in self._angle_params.items():
-            i, j, k, theta0, fc = params
-            self._harmonic_angle_force.setAngleParameters(
-                index, i, j, k, theta0, fc * scale
-            )
+        # for index, params in self._angle_params.items():
+        #     i, j, k, theta0, fc = params
+        #     self._harmonic_angle_force.setAngleParameters(
+        #         index, i, j, k, theta0, fc * scale
+        #     )
 
         # Update the parameters in the context.
         self._periodic_torsion_force.updateParametersInContext(self)
-        self._harmonic_angle_force.updateParametersInContext(self)
+        # self._harmonic_angle_force.updateParametersInContext(self)
