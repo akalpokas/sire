@@ -1,13 +1,4 @@
-__all__ = [
-    "angle",
-    "boresch",
-    "bond",
-    "dihedral",
-    "distance",
-    "moving_harmonic",
-    "morse_potential",
-    "positional",
-]
+__all__ = ["angle", "boresch", "bond", "dihedral", "distance", "morse_potential", "moving_harmonic", "positional", "rmsd", "soft_angle"]
 
 from .. import u
 
@@ -1049,6 +1040,97 @@ def positional(mols, atoms, k=None, r0=None, position=None, name=None, map=None)
 
     return restraints
 
+def rmsd(mols, atoms, ref=None, k=None, r0=None, name=None, map=None):
+    """
+    Create a set of RMSD restraints for the atoms specified in
+    'atoms' that are contained in the container 'mols', using the
+    passed values of 'k' and flat-bottom potential
+    well-width 'r0' for the restraints. Note that 'k' values
+    correspond to half the force constants for the harmonic
+    restraints, because the harmonic restraint energy is defined as
+    k*(rmsd - r0)**2 (hence the force is defined as 2*(rmsd - r0)).
+
+    The RMSD calculation is perfomed by default using the position
+    of mols. Optionally, a different state of the system can be
+    supplied as a reference by passing the 'ref' argument.
+
+    If 'r0' is not specified, then a simple harmonic restraint
+    is used.
+
+    If 'k' is not specified, then a default of 150 kcal mol-1 A-2
+    will be used.
+
+    Parameters
+    ----------
+    mols : sire.system._system.System
+        The system containing the atoms.
+
+    atoms : SireMol::Selector<SireMol::Atom>
+        The atoms to restrain.
+
+    ref : sire.system._system.System
+        The system from which the reference positions for the RMSD calculation
+        are extracted from. If None, this will default to the current
+        state of mols.    
+
+    k : str or SireUnits::Dimension::GeneralUnit or, optional
+        The force constant for the RMSD restraints.
+        If None, this will default to 150 kcal mol-1 A-2.
+        Default is None.
+
+    r0 : str or SireUnits::Dimension::GeneralUnit, optional
+        The width of the flat bottom restraint. If None, this is zero
+        and a simple harmonic restraint is used.
+        Default is None.
+
+    Returns
+    -------
+
+    RMSDRestraints : SireMM::RMSDRestraints
+        A container of RMSD restraints, where the first restraint is
+        the RMSDRestraint created. The RMSD restraint created can be
+        extracted with RMSDRestraints[0].
+    """
+    from .. import u
+    from ..base import create_map
+    from ..mm import RMSDRestraint, RMSDRestraints
+
+    map = create_map(map)
+
+    if k is None:
+        k = u("150 kcal mol-1 A-2")
+    else:
+        k = u(k)
+
+    if r0 is None:
+        r0 = u("0")
+    else:
+        r0 = u(r0)
+
+    atoms = _to_atoms(mols, atoms)
+    mols = mols.atoms()
+
+    if name is None:
+        restraints = RMSDRestraints()
+    else:
+        restraints = RMSDRestraints(name=name)
+
+    # Set default reference positions to mols
+    if ref is None:
+        ref = mols
+    else:
+        try:
+            ref = ref.atoms()
+        except AttributeError:
+            raise TypeError("The reference state must be a complete system.")
+
+    # Generate list of all positions as reference for RMSD calculation
+    ref_pos = ref.atoms().property("coordinates")
+
+    restraints.add(RMSDRestraint(mols.find(atoms), ref_pos, k, r0))
+
+    return restraints
+
 def soft_angle(mols, atoms, theta0=None, ktheta=None, pe=None, name=None, map=None, auto_parametrise=False):
     """
     Create a set of anglel restraints from all of the atoms in 'atoms'
@@ -1059,16 +1141,9 @@ def soft_angle(mols, atoms, theta0=None, ktheta=None, pe=None, name=None, map=No
     If theta0 is None, then the current angle for
     provided atoms will be used as the equilibium value.
 
-    If ktheta is None, then a default value of 100 kcal mol-1 rad-2 will be used
+    If ktheta is None, then a default value of 100 kcal mol-1 rad-2 will be used 
 
-    Parameters
-    ----------
-    mols : sire.system._system.System
-        The system containing the atoms.
-
-    atoms : SireMol::Selector<SireMol::Atom>
-        The atoms to restrain.
-
+    
     ktheta : str or SireUnits::Dimension::GeneralUnit or, optional
         The force constants for the angle restraints.
         If None, this will default to 100 kcal mol-1 rad-2.
@@ -1077,11 +1152,8 @@ def soft_angle(mols, atoms, theta0=None, ktheta=None, pe=None, name=None, map=No
     theta0 : str or SireUnits::Dimension::GeneralUnit, optional
         The equilibrium angles for the angle restraints. If None, these
         will be measured from the current coordinates of the atoms.
-        Default is None.
-
-    Returns
-    -------
-    AnglelRestraints : SireMM::AngleRestraints
+    
+    AngleRestraints : SireMM::AngleRestraints
         A container of angle restraints, where the first restraint is
         the AngleRestraint created. The angle restraint created can be
         extracted with AngleRestraints[0].

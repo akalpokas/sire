@@ -139,6 +139,12 @@
 
 #include "CLJWorkspace.pypp.hpp"
 
+#include "CMAPFunction.pypp.hpp"
+
+#include "CMAPFunctions.pypp.hpp"
+
+#include "CMAPParameter.pypp.hpp"
+
 #include "ChargeParameterName.pypp.hpp"
 
 #include "ChargeParameterName3D.pypp.hpp"
@@ -364,6 +370,10 @@
 #include "PositionalRestraint.pypp.hpp"
 
 #include "PositionalRestraints.pypp.hpp"
+
+#include "RMSDRestraint.pypp.hpp"
+
+#include "RMSDRestraints.pypp.hpp"
 
 #include "Restraint.pypp.hpp"
 
@@ -680,6 +690,12 @@ BOOST_PYTHON_MODULE(_MM){
 
     register_CLJWorkspace_class();
 
+    register_CMAPFunction_class();
+
+    register_CMAPFunctions_class();
+
+    register_CMAPParameter_class();
+
     register_ChargeParameterName3D_class();
 
     register_CoulombComponent_class();
@@ -819,6 +835,10 @@ BOOST_PYTHON_MODULE(_MM){
     register_PositionalRestraint_class();
 
     register_PositionalRestraints_class();
+
+    register_RMSDRestraint_class();
+
+    register_RMSDRestraints_class();
 
     register_RestraintComponent_class();
 

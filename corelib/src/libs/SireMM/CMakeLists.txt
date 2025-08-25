@@ -41,6 +41,8 @@ set ( SIREMM_HEADERS
       cljrffunction.h
       cljshiftfunction.h
       cljworkspace.h
+      cmapfunctions.h
+      cmapparameter.h
       coulombpotential.h
       dihedral.h
       dihedralrestraints.h
@@ -85,6 +87,7 @@ set ( SIREMM_HEADERS
       restraints.h
       restraintcomponent.h
       restraintff.h
+      rmsdrestraints.h
       selectorangle.h
       selectorbond.h
       selectordihedral.h
@@ -136,6 +139,8 @@ set ( SIREMM_SOURCES
       cljrffunction.cpp
       cljshiftfunction.cpp
       cljworkspace.cpp
+      cmapfunctions.cpp
+      cmapparameter.cpp
       coulombpotential.cpp
       dihedral.cpp
       dihedralrestraints.cpp
@@ -179,6 +184,7 @@ set ( SIREMM_SOURCES
       restraints.cpp
       restraintcomponent.cpp
       restraintff.cpp
+      rmsdrestraints.cpp
       selectorangle.cpp
       selectorbond.cpp
       selectordihedral.cpp
