@@ -2174,6 +2174,7 @@ OpenMMMetaData SireOpenMM::sire_to_openmm_system(OpenMM::System &system,
             {
                 _add_morse_potential_restraints(prop.read().asA<SireMM::MorsePotentialRestraints>(),
                                      system, lambda_lever, start_index);
+            }
             else if (prop.read().isA<SireMM::RMSDRestraints>())
             {
                 _add_rmsd_restraints(prop.read().asA<SireMM::RMSDRestraints>(),
