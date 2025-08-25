@@ -77,6 +77,7 @@
 #include "selectormbond.h"
 #include "selectormdihedral.h"
 #include "selectormimproper.h"
+#include "softanglerestraints.h"
 #include "softcljcomponent.h"
 #include "switchingfunction.h"
 #include "testff.h"
