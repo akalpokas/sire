@@ -830,7 +830,7 @@ class DynamicsData:
     def run_minimisation(
         self,
         max_iterations: int = 10000,
-        tolerance: float = 10.0,
+        tolerance: float = 15.0,
         max_restarts: int = 10,
         max_ratchets: int = 20,
         ratchet_frequency: int = 500,
