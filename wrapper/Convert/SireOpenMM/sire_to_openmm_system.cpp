@@ -373,7 +373,7 @@ throw SireError::unsupported(QObject::tr(
 const auto energy_expression = QString(
                                    "rho*e_restraint;"
                                    "e_restraint=de*(1-exp(-sqrt(k/(2*de))*delta))^2;"
-                                   "delta=(r-r0)")
+                                   "delta=abs(r-r0)")
                                    .toStdString();
 
 // const auto energy_expression = QString(
@@ -390,7 +390,7 @@ restraintff->addPerBondParameter("k");
 restraintff->addPerBondParameter("r0");
 restraintff->addPerBondParameter("de");
 
-restraintff->setUsesPeriodicBoundaryConditions(true);
+restraintff->setUsesPeriodicBoundaryConditions(false);
 
 lambda_lever.addRestraintIndex(restraints.name(),
              system.addForce(restraintff));
@@ -860,7 +860,9 @@ void _set_clj_cutoff(OpenMM::NonbondedForce &cljff,
  */
 std::shared_ptr<std::vector<OpenMM::Vec3>>
 _set_box_vectors(OpenMM::System &system,
-                 const ForceFieldInfo &ffinfo)
+                 const SelectorMol &mols,
+                 const ForceFieldInfo &ffinfo,
+                 const PropertyMap &map)
 {
     // create the periodic box vectors
     std::shared_ptr<std::vector<OpenMM::Vec3>> boxvecs;
@@ -911,6 +913,47 @@ _set_box_vectors(OpenMM::System &system,
                                             boxvecs_data[1],
                                             boxvecs_data[2]);
     }
+    else
+    {
+        // Set the box vectors based on the AABox of the system and nonbonded
+        // cutoff distance.
+
+        QVector<QVector<SireMaths::Vector>> all_coords;
+
+        // Get the coordinates from all of the molecules.
+        for (const auto &mol : mols)
+        {
+            const auto coords = mol.property(map["coordinates"]).asA<SireMol::AtomCoords>().toVector();
+            all_coords.append(coords);
+        }
+
+        // Create an AABox.
+        const auto aabox = SireVol::AABox(all_coords);
+
+        // Work out the minimum box size and convert from Angstroms to nm.
+        auto min_box = 2.0 * aabox.halfExtents() * 0.1;
+
+        // Adjust the box size based on the cutoff distance.
+        if (ffinfo.hasCutoff())
+        {
+            // Get the nonbonded cutoff.
+            const auto double_cutoff = 2.0 * ffinfo.cutoff().to(SireUnits::nanometers);
+            min_box += SireMaths::Vector(double_cutoff, double_cutoff, double_cutoff);
+        }
+
+        boxvecs.reset(new std::vector<OpenMM::Vec3>(3));
+        auto boxvecs_data = boxvecs->data();
+
+        boxvecs_data[0] = OpenMM::Vec3(min_box.x(), 0, 0);
+        boxvecs_data[1] = OpenMM::Vec3(0, min_box.y(), 0);
+        boxvecs_data[2] = OpenMM::Vec3(0, 0, min_box.z());
+
+        system.setDefaultPeriodicBoxVectors(boxvecs_data[0],
+                                            boxvecs_data[1],
+                                            boxvecs_data[2]);
+    }
+
+
 
     return boxvecs;
 }
@@ -1011,7 +1054,7 @@ OpenMMMetaData SireOpenMM::sire_to_openmm_system(OpenMM::System &system,
     }
 
     // set the box vectors for periodic spaces
-    auto boxvecs = _set_box_vectors(system, ffinfo);
+    auto boxvecs = _set_box_vectors(system, mols, ffinfo, map);
 
     // Are any of the molecules perturbable, and if they are,
     // should we just ignore perturbations?
