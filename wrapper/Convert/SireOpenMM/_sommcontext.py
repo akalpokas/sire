@@ -484,10 +484,21 @@ class SOMMContext(_Context):
             raise ValueError("No PeriodicTorsionForce found in the OpenMM system.")
         self._periodic_torsion_force = periodic_torsion_force
 
+        # Get the HarmonicAngleForce.
+        harmonic_angle_force = None
+        for force in omm_system.getForces():
+            if isinstance(force, openmm.HarmonicAngleForce):
+                harmonic_angle_force = force
+                break
+        if harmonic_angle_force is None:
+            raise ValueError("No HarmonicAngleForce found in the OpenMM system.")
+        self._harmonic_angle_force = harmonic_angle_force
+
         # Initialise the parameter dictionaries.
         self._nonbonded_params = {}
         self._exception_params = {}
         self._torsion_params = {}
+        self._angle_params = {}
 
         # Store the molecules in the system.
         system_mols = system.molecules()
@@ -544,6 +555,22 @@ class SOMMContext(_Context):
                 if connectivity.are_dihedraled(idx_i, idx_l):
                     self._torsion_params[param_index] = params
 
+            # Gather the angle parameters for the atoms in the selection.
+            for param_index in range(harmonic_angle_force.getNumAngles()):
+                params = harmonic_angle_force.getAngleParameters(param_index)
+                i, j, k, _, _ = params
+
+                # Don't modify non-REST2 angles.
+                if i not in atom_idxs or j not in atom_idxs or k not in atom_idxs:
+                    continue
+
+                # Convert to AtomIdx objects.
+                idx_i = AtomIdx(i - num_atoms)
+                idx_k = AtomIdx(k - num_atoms)
+
+                if connectivity.are_angled(idx_i, idx_k):
+                    self._angle_params[param_index] = params
+
     def _update_rest2(self, lambda_value, rest2_scale):
         """
         Internal method to update the REST2 parameters.
@@ -582,5 +609,13 @@ class SOMMContext(_Context):
                 index, i, j, k, l, periodicity, phase, fc * scale
             )
 
+        # Update the angle parameters.
+        for index, params in self._angle_params.items():
+            i, j, k, theta0, fc = params
+            self._harmonic_angle_force.setAngleParameters(
+                index, i, j, k, theta0, fc * scale
+            )
+
         # Update the parameters in the context.
         self._periodic_torsion_force.updateParametersInContext(self)
+        self._harmonic_angle_force.updateParametersInContext(self)

@@ -1918,13 +1918,28 @@ double LambdaLever::setLambda(OpenMM::Context &context,
                 double size, k;
 
                 angff->getAngleParameters(index,
-                                          particle1, particle2, particle3,
-                                          size, k);
+                                        particle1, particle2, particle3,
+                                        size, k);
+                
+                                        // get the indices of the particles in the Sire molecule
+                const auto atom1 = particle1 - start_atom_idx;
+                const auto atom2 = particle2 - start_atom_idx;
+                const auto atom3 = particle3 - start_atom_idx;
+
+                // Only apply the REST2 scaling factor if this is a proper angle
+                // and all atoms are in the REST2 region.
+                double scale = 1.0;
+                if (perturbable_mol.isRest2(atom1) and
+                    perturbable_mol.isRest2(atom2) and
+                    perturbable_mol.isRest2(atom3))
+                {
+                    scale = rest2_scale;
+                }
 
                 angff->setAngleParameters(index,
-                                          particle1, particle2, particle3,
-                                          morphed_angle_size[j],
-                                          morphed_angle_k[j]);
+                                        particle1, particle2, particle3,
+                                        morphed_angle_size[j],
+                                        morphed_angle_k[j] * scale);
             }
         }
 
