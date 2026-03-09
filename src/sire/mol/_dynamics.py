@@ -492,6 +492,7 @@ class DynamicsData:
                         zip(lambda_windows, rest2_scale_factors)
                     ):
                         if lambda_value != sim_lambda_value:
+                            key = f"{lambda_value:.5f}"
                             if (
                                 not has_lambda_index
                                 or abs(lambda_index - i) <= num_energy_neighbours
