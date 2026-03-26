@@ -733,6 +733,7 @@ def morse_potential(
     use_pbc=None,
     name=None,
     auto_parametrise=False,
+    direct_morse_replacement=False,
     map=None,
 ):
     """
@@ -796,6 +797,10 @@ def morse_potential(
         bond length, and the force constant k will be set to the force constant
         of the bond in the unperturbed state. Note that 'de' must still be provided.
         Default is False.
+
+    direct_morse_replacement : bool, optional
+        If True, and if auto_parametrise is True, then the function will attempt to directly
+        replace an existing bond with a Morse potential.
 
     Returns
     -------
@@ -878,7 +883,7 @@ def morse_potential(
                 # Divide k0 by 2 to convert from force constant to sire half
                 # force constant k
                 if k is None:
-                    k0 = k0 / 2.0
+                    # k0 = k0 / 2.0
                     k0 = u(f"{k0} kJ mol-1 nm-2")
                     k = [k0]
 
@@ -897,6 +902,83 @@ def morse_potential(
                     f"molecule property is_perturbable and atomidx {atom1_idx}"
                 ]
                 break
+        if direct_morse_replacement:
+            from ..legacy import MM as _MM
+            import re as _re
+            from ..legacy.CAS import Symbol as _Symbol
+            pattern = r'r - (\d+\.\d+)'
+
+            # Reduce the bond strength of the bond of interest
+            mol = mol[0]
+            bonds = mol.property("bond0")
+            print(f"Bonds0 before: {bonds}")
+            info = mol.info()
+            new_bonds = _MM.TwoAtomFunctions(mol.info())
+            # print(f"Bonds: {bonds}")
+            for p in bonds.potentials():
+                idx0 = info.atom_idx(p.atom0())
+                idx1 = info.atom_idx(p.atom1())
+
+                if idx0.value() == atom0_idx and idx1.value() == atom1_idx:
+                    bond_potential_string = p.function().to_string()
+                    match = _re.search(pattern, bond_potential_string)
+                    print(f"Bond potential string: {bond_potential_string}")
+
+                    if match:
+                        r = match.group(1)
+                    else:
+                        print(f"String: {bond_potential_string}")
+                        raise ValueError("No match found in the string")
+
+                    r = float(r)
+                    amber_bond = _MM.AmberBond(0, r)
+                    expression = amber_bond.to_expression(_Symbol("r"))
+                    # remove bond completely
+                    # new_bonds.set(idx0, idx1, expression)
+                else:
+                    new_bonds.set(idx0, idx1, p.function())
+            # Update the molecule.
+            mol = mol.edit().set_property("bond0", new_bonds).molecule().commit()
+            print(f"Mol type: {type(mol)}")
+            print(f"Bonds0 after: {mol.property('bond0')}")
+            mols.update(mol)
+
+            bonds = mol.property("bond1")
+            print(f"Bonds1 before: {bonds}")
+            info = mol.info()
+            new_bonds = _MM.TwoAtomFunctions(mol.info())
+            # print(f"Bonds: {bonds}")
+            for p in bonds.potentials():
+                idx0 = info.atom_idx(p.atom0())
+                idx1 = info.atom_idx(p.atom1())
+
+                if idx0.value() == atom0_idx and idx1.value() == atom1_idx:
+                    bond_potential_string = p.function().to_string()
+                    match = _re.search(pattern, bond_potential_string)
+                    print(f"Bond potential string: {bond_potential_string}")
+
+                    if match:
+                        r = match.group(1)
+                    else:
+                        print(f"String: {bond_potential_string}")
+                        raise ValueError("No match found in the string")
+
+                    r = float(r)
+                    amber_bond = _MM.AmberBond(0, r)
+                    expression = amber_bond.to_expression(_Symbol("r"))
+                    # remove bond completely
+                    # new_bonds.set(idx0, idx1, expression)
+                else:
+                    new_bonds.set(idx0, idx1, p.function())
+            # Update the molecule.
+            mol = mol.edit().set_property("bond1", new_bonds).molecule().commit()
+            print(f"Mol type: {type(mol)}")
+            print(f"Bonds1 after: {mol.property('bond1')}")
+            mols.update(mol)
+
+
+
+
 
     try:
         atoms0 = _to_atoms(mols, atoms0)
@@ -943,7 +1025,7 @@ def morse_potential(
         except:
             raise ValueError(f"Unable to parse 'de' as a Sire GeneralUnit: {de}")
 
-    mols = mols.atoms()
+    mols_atms = mols.atoms()
 
     if name is None:
         restraints = MorsePotentialRestraints()
@@ -951,8 +1033,8 @@ def morse_potential(
         restraints = MorsePotentialRestraints(name=name)
 
     for i, (atom0, atom1) in enumerate(zip(atoms0, atoms1)):
-        idxs0 = mols.find(atom0)
-        idxs1 = mols.find(atom1)
+        idxs0 = mols_atms.find(atom0)
+        idxs1 = mols_atms.find(atom1)
 
         if type(idxs0) is int:
             idxs0 = [idxs0]
@@ -989,7 +1071,7 @@ def morse_potential(
     # Set the use_pbc flag.
     restraints.set_uses_pbc(use_pbc)
 
-    return restraints
+    return restraints, mols
 
 
 def bond(*args, use_pbc=False, **kwargs):
