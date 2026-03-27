@@ -734,6 +734,7 @@ def morse_potential(
     name=None,
     auto_parametrise=False,
     direct_morse_replacement=False,
+    retain_harmonic_bond=True,
     map=None,
 ):
     """
@@ -801,6 +802,12 @@ def morse_potential(
     direct_morse_replacement : bool, optional
         If True, and if auto_parametrise is True, then the function will attempt to directly
         replace an existing bond with a Morse potential.
+
+    retain_harmonic_bond : bool, optional
+        If True, and if auto_parametrise is True, then the function will only nullify the force
+        constant of the existing harmonic bond, rather than removing the bond potential entirely.
+        If False, then the existing harmonic bond will be removed entirely.
+        Default is False.
 
     Returns
     -------
@@ -933,8 +940,11 @@ def morse_potential(
                     r = float(r)
                     amber_bond = _MM.AmberBond(0, r)
                     expression = amber_bond.to_expression(_Symbol("r"))
-                    # remove bond completely
-                    # new_bonds.set(idx0, idx1, expression)
+
+                    if retain_harmonic_bond:
+                        # retain the harmonic bond with a zero force constant,
+                        # if we skip this then, the original harmonic bond will be removed entirely
+                        new_bonds.set(idx0, idx1, p.function())
                 else:
                     new_bonds.set(idx0, idx1, p.function())
             # Update the molecule.
@@ -966,8 +976,10 @@ def morse_potential(
                     r = float(r)
                     amber_bond = _MM.AmberBond(0, r)
                     expression = amber_bond.to_expression(_Symbol("r"))
-                    # remove bond completely
-                    # new_bonds.set(idx0, idx1, expression)
+                    if retain_harmonic_bond:
+                        # retain the harmonic bond with a zero force constant,
+                        # if we skip this then, the original harmonic bond will be removed entirely
+                        new_bonds.set(idx0, idx1, p.function())
                 else:
                     new_bonds.set(idx0, idx1, p.function())
             # Update the molecule.
