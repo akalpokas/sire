@@ -497,7 +497,6 @@ class DynamicsData:
                                 not has_lambda_index
                                 or abs(lambda_index - i) <= num_energy_neighbours
                             ):
-                                key = f"{lambda_value:.5f}"
                                 self._omm_mols.set_lambda(
                                     lambda_value,
                                     rest2_scale=rest2_scale,

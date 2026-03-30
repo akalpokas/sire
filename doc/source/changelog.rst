@@ -17,11 +17,26 @@ organisation on `GitHub <https://github.com/openbiosim/sire>`__.
 
 * Please add an item to this CHANGELOG for any new features or bug fixes when creating a PR.
 
+* Fixed duplicate converter registrations in the Python wrappers for OpenMM-related classes,
+  which caused ``RuntimeWarning: to-Python converter already registered`` warnings at import
+  time. Also fixed the autogeneration script (``scanheaders.py``) to deduplicate metatypes
+  so the issue does not recur when wrappers are regenerated.
+
 * Fixed a bug in the AMBER prmtop writer where CMAP atom indices were calculated
   incorrectly for systems containing more than one molecule with CMAP terms (e.g.
   multi-chain glycoproteins).
 
 * Add convenience function to ``sire.mol.dynamics`` to get current energy trajectory records.
+
+* Fixed parsing of AMBER and GROMACS GLYCAM force field topologies.
+
+* Add support for CMAP terms in the OpenMM conversion layer.
+
+* Fix hang in ``sire.load`` function when shared GROMACS topology path is missing.
+
+* Add support for 4- and 5-point water models in the OpenMM conversion layer.
+
+* Add functionality for coupling one lambda lever to another.
 
 `2025.4.0 <https://github.com/openbiosim/sire/compare/2025.3.0...2025.4.0>`__ - February 2026
 ---------------------------------------------------------------------------------------------
