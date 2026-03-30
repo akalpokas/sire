@@ -732,9 +732,9 @@ def morse_potential(
     de=None,
     use_pbc=None,
     name=None,
-    auto_parametrise=False,
-    direct_morse_replacement=False,
-    retain_harmonic_bond=True,
+    auto_parametrise=True,
+    direct_morse_replacement=True,
+    retain_harmonic_bond=False,
     map=None,
 ):
     """
@@ -797,11 +797,11 @@ def morse_potential(
         and 'atoms1', the equilibrium distance r0 will be set to the original
         bond length, and the force constant k will be set to the force constant
         of the bond in the unperturbed state. Note that 'de' must still be provided.
-        Default is False.
+        Default is True.
 
     direct_morse_replacement : bool, optional
         If True, and if auto_parametrise is True, then the function will attempt to directly
-        replace an existing bond with a Morse potential.
+        replace an existing bond with a Morse potential. Default is True.
 
     retain_harmonic_bond : bool, optional
         If True, and if auto_parametrise is True, then the function will only nullify the force
@@ -887,10 +887,7 @@ def morse_potential(
                 atom0_idx = [bond_name.atom0().index().value()][0]
                 atom1_idx = [bond_name.atom1().index().value()][0]
 
-                # Divide k0 by 2 to convert from force constant to sire half
-                # force constant k
                 if k is None:
-                    # k0 = k0 / 2.0
                     k0 = u(f"{k0} kJ mol-1 nm-2")
                     k = [k0]
 
@@ -909,85 +906,46 @@ def morse_potential(
                     f"molecule property is_perturbable and atomidx {atom1_idx}"
                 ]
                 break
+        
         if direct_morse_replacement:
             from ..legacy import MM as _MM
             import re as _re
             from ..legacy.CAS import Symbol as _Symbol
-            pattern = r'r - (\d+\.\d+)'
-
-            # Reduce the bond strength of the bond of interest
+            
+            search_pattern = r'r - (\d+\.\d+)'
             mol = mol[0]
-            bonds = mol.property("bond0")
-            print(f"Bonds0 before: {bonds}")
             info = mol.info()
-            new_bonds = _MM.TwoAtomFunctions(mol.info())
-            # print(f"Bonds: {bonds}")
-            for p in bonds.potentials():
-                idx0 = info.atom_idx(p.atom0())
-                idx1 = info.atom_idx(p.atom1())
 
-                if idx0.value() == atom0_idx and idx1.value() == atom1_idx:
-                    bond_potential_string = p.function().to_string()
-                    match = _re.search(pattern, bond_potential_string)
-                    print(f"Bond potential string: {bond_potential_string}")
-
-                    if match:
-                        r = match.group(1)
+            # We need to loop through both bond0 and bond1 properties, as we don't know
+            # which one the bond of interest will be in (bond forming or bond breaking)
+            for bond_prop in ("bond0", "bond1"):
+                bonds = mol.property(bond_prop)
+                new_bonds = _MM.TwoAtomFunctions(info)
+                
+                for p in bonds.potentials():
+                    idx0 = info.atom_idx(p.atom0())
+                    idx1 = info.atom_idx(p.atom1())
+                    
+                    # Attempt to match the bond of interest using previously identified atom indices
+                    if idx0.value() == atom0_idx and idx1.value() == atom1_idx:
+                        bond_potential_string = p.function().to_string()
+                        match = _re.search(search_pattern, bond_potential_string)
+                        
+                        if not match:
+                            raise ValueError(f"No match found in the string: {bond_potential_string}")
+                            
+                        # If we retaining the harmonic bond, then set the harmonic bond force constant
+                        # to zero. Otherwise, the harmonic bond entirely removed from the force list.
+                        if retain_harmonic_bond:
+                            r = float(match.group(1))
+                            amber_bond = _MM.AmberBond(0, r)
+                            expression = amber_bond.to_expression(_Symbol("r"))
+                            new_bonds.set(idx0, idx1, expression)
                     else:
-                        print(f"String: {bond_potential_string}")
-                        raise ValueError("No match found in the string")
-
-                    r = float(r)
-                    amber_bond = _MM.AmberBond(0, r)
-                    expression = amber_bond.to_expression(_Symbol("r"))
-
-                    if retain_harmonic_bond:
-                        # retain the harmonic bond with a zero force constant,
-                        # if we skip this then, the original harmonic bond will be removed entirely
                         new_bonds.set(idx0, idx1, p.function())
-                else:
-                    new_bonds.set(idx0, idx1, p.function())
-            # Update the molecule.
-            mol = mol.edit().set_property("bond0", new_bonds).molecule().commit()
-            print(f"Mol type: {type(mol)}")
-            print(f"Bonds0 after: {mol.property('bond0')}")
-            mols.update(mol)
-
-            bonds = mol.property("bond1")
-            print(f"Bonds1 before: {bonds}")
-            info = mol.info()
-            new_bonds = _MM.TwoAtomFunctions(mol.info())
-            # print(f"Bonds: {bonds}")
-            for p in bonds.potentials():
-                idx0 = info.atom_idx(p.atom0())
-                idx1 = info.atom_idx(p.atom1())
-
-                if idx0.value() == atom0_idx and idx1.value() == atom1_idx:
-                    bond_potential_string = p.function().to_string()
-                    match = _re.search(pattern, bond_potential_string)
-                    print(f"Bond potential string: {bond_potential_string}")
-
-                    if match:
-                        r = match.group(1)
-                    else:
-                        print(f"String: {bond_potential_string}")
-                        raise ValueError("No match found in the string")
-
-                    r = float(r)
-                    amber_bond = _MM.AmberBond(0, r)
-                    expression = amber_bond.to_expression(_Symbol("r"))
-                    if retain_harmonic_bond:
-                        # retain the harmonic bond with a zero force constant,
-                        # if we skip this then, the original harmonic bond will be removed entirely
-                        new_bonds.set(idx0, idx1, p.function())
-                else:
-                    new_bonds.set(idx0, idx1, p.function())
-            # Update the molecule.
-            mol = mol.edit().set_property("bond1", new_bonds).molecule().commit()
-            print(f"Mol type: {type(mol)}")
-            print(f"Bonds1 after: {mol.property('bond1')}")
-            mols.update(mol)
-
+                        
+                mol = mol.edit().set_property(bond_prop, new_bonds).molecule().commit()
+                mols.update(mol)
 
 
 
